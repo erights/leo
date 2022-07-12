@@ -19,17 +19,17 @@ use std::fmt::Display;
 use leo_ast::{ParamMode, Type, Value};
 use leo_span::Span;
 
-/// An enumeration of the different types of declarations.
+/// An enumeration of the different types of variables.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DeclarationType {
+pub enum VariableType {
     Const,
     Input(ParamMode),
     Mut,
 }
 
-impl Display for DeclarationType {
+impl Display for VariableType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use DeclarationType::*;
+        use VariableType::*;
 
         match self {
             Const => write!(f, "const var"),
@@ -47,14 +47,14 @@ pub struct VariableSymbol {
     /// The `Span` associated with the variable.
     pub span: Span,
     /// The type of declaration for the variable.
-    pub declaration: DeclarationType,
+    pub variable_type: VariableType,
     /// The value of the declaration, if it is a constant.
     pub value: Option<Value>,
 }
 
 impl Display for VariableSymbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.declaration, self.type_)?;
+        write!(f, "{}: {}", self.variable_type, self.type_)?;
         Ok(())
     }
 }

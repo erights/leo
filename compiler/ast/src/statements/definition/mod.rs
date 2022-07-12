@@ -30,7 +30,7 @@ pub use declare::*;
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct DefinitionStatement {
     /// What sort of declaration is this? `let` or `const`?.
-    pub declaration_type: Declare,
+    pub declaration_type: DeclarationType,
     /// The bindings / variable names to declare.
     pub variable_names: Vec<VariableName>,
     /// The types of the bindings, if specified, or inferred otherwise.

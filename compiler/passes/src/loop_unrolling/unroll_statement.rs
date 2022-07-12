@@ -20,16 +20,16 @@ use leo_ast::*;
 use leo_errors::FlattenError;
 
 use crate::unroller::LoopUnroller;
-use crate::{Declaration, VariableSymbol};
+use crate::{DeclarationType, VariableSymbol};
 
 impl<'a> StatementReconstructor for LoopUnroller<'a> {
     fn reconstruct_definition(&mut self, input: DefinitionStatement) -> Statement {
         // If we are unrolling a loop, then we need to repopulate the symbol table.
         if self.is_unrolling {
             let declaration = if input.declaration_type == Declare::Const {
-                Declaration::Const
+                DeclarationType::Const
             } else {
-                Declaration::Mut
+                DeclarationType::Mut
             };
 
             input.variable_names.iter().for_each(|v| {
@@ -39,6 +39,7 @@ impl<'a> StatementReconstructor for LoopUnroller<'a> {
                         type_: input.type_.clone(),
                         span: input.span(),
                         declaration: declaration.clone(),
+                        value: Default::default(),
                     },
                 ) {
                     self.handler.emit_err(err);

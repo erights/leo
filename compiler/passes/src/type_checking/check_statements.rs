@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Declaration, TypeChecker, VariableSymbol};
+use crate::{DeclarationType, TypeChecker, VariableSymbol};
 
 use leo_ast::*;
 use leo_errors::TypeCheckerError;
@@ -36,9 +36,9 @@ impl<'a> StatementVisitor<'a> for TypeChecker<'a> {
 
     fn visit_definition(&mut self, input: &'a DefinitionStatement) {
         let declaration = if input.declaration_type == Declare::Const {
-            Declaration::Const
+            DeclarationType::Const
         } else {
-            Declaration::Mut
+            DeclarationType::Mut
         };
 
         input.variable_names.iter().for_each(|v| {
@@ -52,6 +52,7 @@ impl<'a> StatementVisitor<'a> for TypeChecker<'a> {
                     type_: input.type_.clone(),
                     span: input.span(),
                     declaration: declaration.clone(),
+                    value: Default::default(),
                 },
             ) {
                 self.handler.emit_err(err);
@@ -71,8 +72,10 @@ impl<'a> StatementVisitor<'a> for TypeChecker<'a> {
         let var_type = if let Some(var) = self.symbol_table.borrow_mut().lookup_variable(&var_name.name) {
             // TODO: Check where this check is moved to in `improved-flattening`.
             match &var.declaration {
-                Declaration::Const => self.emit_err(TypeCheckerError::cannot_assign_to_const_var(var_name, var.span)),
-                Declaration::Input(ParamMode::Const) => {
+                DeclarationType::Const => {
+                    self.emit_err(TypeCheckerError::cannot_assign_to_const_var(var_name, var.span))
+                }
+                DeclarationType::Input(ParamMode::Const) => {
                     self.emit_err(TypeCheckerError::cannot_assign_to_const_input(var_name, var.span))
                 }
                 _ => {}
@@ -117,7 +120,8 @@ impl<'a> StatementVisitor<'a> for TypeChecker<'a> {
             VariableSymbol {
                 type_: input.type_.clone(),
                 span: input.span(),
-                declaration: Declaration::Const,
+                declaration: DeclarationType::Const,
+                value: Default::default(),
             },
         ) {
             self.handler.emit_err(err);

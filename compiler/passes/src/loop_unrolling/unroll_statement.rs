@@ -19,10 +19,10 @@ use std::cell::RefCell;
 use leo_ast::*;
 use leo_errors::FlattenError;
 
-use crate::unroller::Unroller;
+use crate::unroller::LoopUnroller;
 use crate::{Declaration, VariableSymbol};
 
-impl<'a> StatementReconstructor for Unroller<'a> {
+impl<'a> StatementReconstructor for LoopUnroller<'a> {
     fn reconstruct_definition(&mut self, input: DefinitionStatement) -> Statement {
         // If we are unrolling a loop, then we need to repopulate the symbol table.
         if self.is_unrolling {

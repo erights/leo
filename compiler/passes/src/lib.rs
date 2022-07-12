@@ -26,6 +26,9 @@ pub use canonicalization::*;
 /* pub mod import_resolution;
 pub use import_resolution::*; */
 
+pub mod constant_folding;
+pub use constant_folding::*;
+
 pub mod pass;
 pub use self::pass::*;
 

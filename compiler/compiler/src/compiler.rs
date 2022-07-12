@@ -17,8 +17,8 @@
 //! The compiler for Leo programs.
 //!
 //! The [`Compiler`] type compiles Leo programs into R1CS circuits.
-use leo_ast::Program;
 pub use leo_ast::{Ast, InputAst};
+use leo_ast::{Program, ProgramInput};
 use leo_errors::emitter::Handler;
 use leo_errors::{CompilerError, Result};
 pub use leo_passes::SymbolTable;
@@ -43,8 +43,8 @@ pub struct Compiler<'a> {
     output_directory: PathBuf,
     /// The AST for the program.
     pub ast: Ast,
-    /// The input ast for the program if it exists.
-    pub input_ast: Option<InputAst>,
+    /// The program input, if it exists.
+    pub program_input: Option<ProgramInput>,
     /// Compiler options on some optional output files.
     output_options: OutputOptions,
 }
@@ -64,7 +64,7 @@ impl<'a> Compiler<'a> {
             main_file_path,
             output_directory,
             ast: Ast::new(Program::new("Initial".to_string())),
-            input_ast: None,
+            program_input: None,
             output_options: output_options.unwrap_or_default(),
         }
     }
@@ -93,16 +93,12 @@ impl<'a> Compiler<'a> {
         // Use the parser to construct the abstract syntax tree (ast).
         let ast: leo_ast::Ast = leo_parser::parse_ast(self.handler, &prg_sf.src, prg_sf.start_pos)?;
 
-        if self.output_options.initial_ast {
-            // Write the AST snapshot post parsing.
-            if self.output_options.spans_enabled {
-                ast.to_json_file(self.output_directory.clone(), "initial_ast.json")?;
-            } else {
-                ast.to_json_file_without_keys(self.output_directory.clone(), "initial_ast.json", &["span"])?;
-            }
-        }
-
+        // Store the AST.
         self.ast = ast;
+
+        if self.output_options.initial_ast {
+            self.write_ast_to_json("initial_ast.json")?;
+        }
 
         Ok(())
     }
@@ -138,7 +134,7 @@ impl<'a> Compiler<'a> {
                 }
             }
 
-            self.input_ast = Some(input_ast);
+            self.program_input = Some(input_ast.try_into()?);
         }
         Ok(())
     }
@@ -155,6 +151,25 @@ impl<'a> Compiler<'a> {
     ///
     pub fn type_checker_pass(&'a self, symbol_table: SymbolTable) -> Result<SymbolTable> {
         TypeChecker::do_pass((&self.ast, self.handler, symbol_table))
+    }
+
+    ///
+    /// Runs the constant folding pass.
+    ///
+    pub fn constant_folding_pass(&mut self, symbol_table: SymbolTable) -> Result<SymbolTable> {
+        let (ast, symbol_table) = ConstantFolder::do_pass((
+            std::mem::take(&mut self.ast),
+            self.handler,
+            symbol_table,
+            self.program_input.as_ref().map(|i| &i.constants),
+        ))?;
+        self.ast = ast;
+
+        if self.output_options.constant_folded_ast {
+            self.write_ast_to_json("constant_folded_ast.json")?;
+        }
+
+        Ok(symbol_table)
     }
 
     ///
@@ -177,6 +192,9 @@ impl<'a> Compiler<'a> {
     pub fn compiler_stages(&mut self) -> Result<SymbolTable> {
         let st = self.symbol_table_pass()?;
         let st = self.type_checker_pass(st)?;
+
+        // TODO: Make this pass optional.
+        let st = self.constant_folding_pass(st)?;
 
         // TODO: Make this pass optional.
         let st = self.loop_unrolling_pass(st)?;

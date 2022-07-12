@@ -15,7 +15,7 @@
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{commands::Command, context::Context};
-use leo_compiler::{Ast, Compiler, InputAst, OutputOptions};
+use leo_compiler::{Ast, Compiler, OutputOptions};
 use leo_errors::{CliError, Result};
 use leo_package::{
     inputs::InputFile,
@@ -40,6 +40,8 @@ pub struct BuildOptions {
     pub enable_initial_input_ast_snapshot: bool,
     #[structopt(long, help = "Writes AST snapshot of the initial parse.")]
     pub enable_initial_ast_snapshot: bool,
+    #[structopt(long, help = "Writes AST snapshot of the constant folded AST.")]
+    pub enable_constant_folded_snapshot: bool,
     #[structopt(long, help = "Writes AST snapshot of the unrolled AST.")]
     pub enable_unrolled_ast_snapshot: bool,
 }
@@ -50,11 +52,13 @@ impl From<BuildOptions> for OutputOptions {
             spans_enabled: options.enable_spans,
             initial_input_ast: options.enable_initial_input_ast_snapshot,
             initial_ast: options.enable_initial_ast_snapshot,
+            constant_folded_ast: options.enable_constant_folded_snapshot,
             unrolled_ast: options.enable_unrolled_ast_snapshot,
         };
         if options.enable_all_ast_snapshots {
             out_options.initial_input_ast = true;
             out_options.initial_ast = true;
+            out_options.constant_folded_ast = true;
             out_options.unrolled_ast = true;
         }
 
@@ -71,7 +75,8 @@ pub struct Build {
 
 impl Command for Build {
     type Input = ();
-    type Output = (Option<InputAst>, Ast, bool);
+    // TODO: Do we need the input ast or program input?
+    type Output = (Ast, bool);
 
     fn log_span(&self) -> Span {
         tracing::span!(tracing::Level::INFO, "Build")
@@ -216,6 +221,6 @@ impl Command for Build {
 
         tracing::info!("Complete");
 
-        Ok((program.input_ast, program.ast, checksum_differs))
+        Ok((program.ast, checksum_differs))
     }
 }

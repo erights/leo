@@ -39,7 +39,6 @@ impl<'a> StatementReconstructor for LoopUnroller<'a> {
                         type_: input.type_.clone(),
                         span: input.span(),
                         variable_type: declaration.clone(),
-                        value: Default::default(),
                     },
                 ) {
                     self.handler.emit_err(err);
@@ -113,10 +112,8 @@ impl<'a> StatementReconstructor for LoopUnroller<'a> {
                 self.block_index = 0;
 
                 // Clear the symbol table for the loop body.
-                // This is necessary because loop unrolling transforms the program, which requires reconstructing the symbol table.
-                self.symbol_table.borrow_mut().variables.clear();
-                self.symbol_table.borrow_mut().scopes.clear();
-                self.symbol_table.borrow_mut().scope_index = 0;
+                // This is necessary because loop unrolling transforms the AST, which requires reconstructing the symbol table.
+                self.symbol_table.borrow_mut().clear();
 
                 // Create a block statement to replace the iteration statement.
                 // Creates a new block per iteration inside the outer block statement.

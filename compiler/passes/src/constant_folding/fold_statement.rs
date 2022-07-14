@@ -17,6 +17,7 @@
 use std::cell::RefCell;
 
 use leo_ast::*;
+use leo_errors::TypeCheckerError;
 
 use crate::ConstantFolder;
 
@@ -41,15 +42,16 @@ impl<'a> StatementReconstructor for ConstantFolder<'a> {
 
         input.variable_names.iter().for_each(|var| {
             // TODO: Uncomment when constant folding is implemented for all types.
-            // if const_val.is_none() {
-            //     // Check that the variable's declaration type is not const.
-            //     match input.declaration_type {
-            //         DeclarationType::Let => {},
-            //         DeclarationType::Const => {
-            //             self.handler.emit_err(TypeCheckerError::cannot_assign_to_const_var(var, var.span()));
-            //         }
-            //     }
-            // }
+            if const_val.is_none() {
+                // Check that the variable's declaration type is not constant.
+                match input.declaration_type {
+                    DeclarationType::Let => {}
+                    DeclarationType::Const => {
+                        self.handler
+                            .emit_err(TypeCheckerError::cannot_assign_to_const_var(var, var.span()));
+                    }
+                }
+            }
 
             st.set_value(var.identifier.name, const_val.clone());
         });
